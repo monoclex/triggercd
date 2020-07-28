@@ -67,7 +67,7 @@ export async function execute(script: ResolvedScript, config: ScriptConfiguratio
   const scriptDirectory = path.dirname(script.path);
   await copy(scriptDirectory, config.habitatPath);
 
-  const newScriptPath = path.resolve(scriptDirectory, path.basename(script.path));
+  const newScriptPath = path.resolve(config.habitatPath, path.basename(script.path));
   const scriptProcess = startScript(script.type, newScriptPath, config.webhookBody);
 
   const output = new MultiReader(scriptProcess.stdout, scriptProcess.stderr);
@@ -85,7 +85,7 @@ export interface ActiveScript {
 
 const pipeOutput = { stdout: "piped", stderr: "piped" } as const;
 
-function startScript(type: "deno" | "bash", path: string, webhookBody: string): Deno.Process<typeof pipeOutput & { cmd: string[] }> {
+function startScript(type: "deno" | "bash", scriptPath: string, webhookBody: string): Deno.Process<typeof pipeOutput & { cmd: string[] }> {
   if (type === "deno") {
 
     // TODO: configurable permissions?
@@ -93,13 +93,15 @@ function startScript(type: "deno" | "bash", path: string, webhookBody: string): 
     // currently, the benefits of this being configurable are outweighed by the additional complexity (requiring additoinal configuration to
     // be passed in).
     return Deno.run({
-      cmd: ["deno", "run", "--allow-all", path, webhookBody],
+      cmd: ["deno", "run", "--allow-all", "--unstable", scriptPath, webhookBody],
+      cwd: path.dirname(scriptPath),
       ...pipeOutput
     })
   }
   else {
     return Deno.run({
-      cmd: ["bash", path, webhookBody],
+      cmd: ["bash", scriptPath, webhookBody],
+      cwd: path.dirname(scriptPath),
       ...pipeOutput
     })
   }

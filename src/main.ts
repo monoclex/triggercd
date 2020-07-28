@@ -37,7 +37,7 @@ or ensure that you've mounted a /webhooks/ volume <doc link>
 
   const habitatPath = `/habitats/${habitatId++}`;
 
-  const activeScript = await execute(resolvedScript, { habitatPath, webhookBody: await context.body() })
+  const activeScript = await execute(resolvedScript, { habitatPath, webhookBody: new TextDecoder().decode(await context.body<Uint8Array>()) })
 
   context.blob(activeScript.output, "text/plain", 200);
   await activeScript.execution;

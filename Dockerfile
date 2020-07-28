@@ -2,6 +2,11 @@ FROM hayd/alpine-deno:1.2.1
 
 EXPOSE 80
 
+# install required utilities
+# the dockerfile must *guarantee* that all of the following are available, in no particular order:
+# `git`, `docker`, `bash`, `jq`, `wget`, `curl`, `sed`, `awk`, `grep`, `cat`
+RUN apk add --no-cache git bash jq wget curl grep
+
 WORKDIR /app
 
 # cache external dependencies to make successive builds faster

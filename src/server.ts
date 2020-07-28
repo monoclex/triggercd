@@ -1,8 +1,8 @@
-import { Application, path } from "./deps.ts";
+import { Application } from "./deps.ts";
 import { execute } from "./scripts/execution.ts";
+import { Habitat } from "./scripts/habitats.ts";
 import { resolveScript } from "./scripts/resolution.ts";
 
-let habitatId = 0;
 const textDecoder = new TextDecoder();
 
 export interface Configuration {
@@ -14,6 +14,8 @@ export interface Configuration {
 
 export async function runWebServer(config: Configuration): Promise<void> {
   const { webhooks, habitats, shell, port } = config;
+
+  const habitat = new Habitat(habitats);
 
   // ensure the habitats folder exists
   try {
@@ -49,16 +51,22 @@ or ensure that you've mounted a /webhooks/ volume <doc link>
       return;
     }
 
-    const habitatPath = path.join(habitats, `${habitatId++}`);
+    const { path: habitatPath, id: habitatId } = habitat.rent();
 
-    const activeScript = await execute(resolvedScript, {
-      habitatPath,
-      webhookBody: textDecoder.decode(await context.body<Uint8Array>()),
-      shell,
-    });
+    try {
+      const activeScript = await execute(resolvedScript, {
+        habitatPath,
+        webhookBody: textDecoder.decode(await context.body<Uint8Array>()),
+        shell,
+      });
 
-    context.blob(activeScript.output, "text/plain", 200);
-    await activeScript.execution;
+      context.blob(activeScript.output, "text/plain", 200);
+      await activeScript.execution;
+    }
+    finally {
+      habitat.return(habitatId);
+    }
+
     return;
   })
     .start({ port });

@@ -19,52 +19,36 @@ import { path } from "./deps.ts";
  * @returns `null` when a script couldn't be found. Otherwise, returns the name
  * of the script to run.
  */
-export async function resolveScript(id: string, webhooksDir: string = "/webhooks/"): Promise<ResolvedScript | null> {
+export function resolveScript(id: string, webhooksDir: string = "/webhooks/"): Promise<ResolvedScript | null> {
 
-  // TODO: update function code to match specification above
-  const scriptDeno = await statFile(path.join(webhooksDir, `${id}.ts`));
-  if (scriptDeno.isFile) {
-    return { type: "deno", path: scriptDeno.path };
-  }
+  // warning: this is a LOT of abstraction bullcrud, it's probably best you don't even try fully understand it
+  // i think this is what they call "going overboard"
+  // but anyways, up above is exactly the steps, which correlate to what you see in the last return statement. enjoy!
 
-  const scriptBash = await statFile(path.join(webhooksDir, `${id}.sh`));
-  if (scriptBash.isFile) {
-    return { type: "bash", path: scriptBash.path };
-  }
+  const runItAsADenoScript = (path: string): ResolvedScript => ({ path, type: "deno" });
+  const runItAsAShellScript = (path: string): ResolvedScript => ({ path, type: "shell" });
 
-  const scriptDirectory = await statFile(path.join(webhooksDir, id));
-  if (scriptDirectory.isDirectory) {
-    const onTriggerDeno = await statFile(`/webhooks/${id}/on-trigger.ts`);
-    if (onTriggerDeno.isFile) {
-      return { type: "deno", path: onTriggerDeno.path };
-    }
+  const ifItIsAFile = (_: unknown, fileInfo: FileInfo) => fileInfo.isFile;
+  const ifItIsADirectory = (_: unknown, fileInfo: FileInfo) => fileInfo.isDirectory;
 
-    const webhookScriptDeno = await statFile(`/webhooks/${id}/${id}.ts`);
-    if (webhookScriptDeno.isFile) {
-      return { type: "deno", path: webhookScriptDeno.path };
-    }
+  const getFileInfo = (name: string) => statFile(path.join(webhooksDir, name));
 
-    const onTriggerBash = await statFile(`/webhooks/${id}/on-trigger.sh`);
-    if (onTriggerBash.isFile) {
-      return { type: "bash", path: onTriggerBash.path };
-    }
-
-    const webhookScriptBash = await statFile(`/webhooks/${id}/${id}.sh`);
-    if (webhookScriptBash.isFile) {
-      return { type: "bash", path: webhookScriptBash.path };
-    }
-  }
-  
-  if (scriptDirectory.isFile) {
-    return { type: "bash", path: scriptDirectory.path };
-  }
-
-  return null;
+  // i generally dislike manually spacing all arguments to be the same but *eh*
+  return consider(`${id}.ts`,       getFileInfo, ifItIsAFile,      runItAsADenoScript)
+    .or(          `${id}.sh`,       getFileInfo, ifItIsAFile,      runItAsAShellScript)
+    .or(          `${id}`,          getFileInfo, ifItIsADirectory, () => (
+      consider(   `${id}/run.ts`,   getFileInfo, ifItIsAFile,      runItAsADenoScript)
+      .or(        `${id}/${id}.ts`, getFileInfo, ifItIsAFile,      runItAsADenoScript)
+      .or(        `${id}/run.sh`,   getFileInfo, ifItIsAFile,      runItAsAShellScript)
+      .or(        `${id}/${id}.sh`, getFileInfo, ifItIsAFile,      runItAsAShellScript)
+      .take()
+    ))
+    .take();
 }
 
 export interface ResolvedScript {
   path: string;
-  type: "deno" | "bash";
+  type: "deno" | "shell";
 }
 
 /**
@@ -98,3 +82,58 @@ export interface FileInfo {
  isFile: boolean;
 }
 
+// this is an entire mini-library ffs
+// i went overboard writing code nobody will even want to understand
+// weeee
+
+function consider<TState, TCompute, TResult>(
+  state: TState,
+  compute: (state: TState) => TCompute | Promise<TCompute>,
+  matches: (state: TState, computed: TCompute) => boolean | Promise<boolean>,
+  result: (state: TState, computed: TCompute) => TResult | Promise<TResult>
+): ConsiderChain<TState, TCompute, TResult> {
+  return new ConsiderChain<TState, TCompute, TResult>(state, compute, matches, result);
+}
+
+interface Takeable<T> {
+  take(): Promise<T | null>;
+}
+
+class ConsiderChain<TState, TCompute, TResult> {
+  constructor(
+    public readonly state: TState,
+    public readonly compute: (state: TState) => TCompute | Promise<TCompute>,
+    public readonly matches: (state: TState, computed: TCompute) => boolean | Promise<boolean>,
+    public readonly result: (state: TState, computed: TCompute) => null | TResult | Promise<TResult | null>,
+    private readonly _parent?: Takeable<TResult>,
+  ) {}
+
+  or<TState, TCompute>(
+    state: TState,
+    compute: (state: TState) => TCompute | Promise<TCompute>,
+    matches: (state: TState, computed: TCompute) => boolean | Promise<boolean>,
+    result: (state: TState, computed: TCompute) => null | TResult | Promise<TResult | null>,
+  ): ConsiderChain<TState, TCompute, TResult> {
+    return new ConsiderChain<TState, TCompute, TResult>(state, compute, matches, result, this);
+  }
+
+  async take(): Promise<TResult | null> {
+    const computed = await this.compute(this.state);
+
+    if (await this.matches(this.state, computed)) {
+      const result = await this.result(this.state, computed);
+
+      // if the result is null, we want to try consume the parent's considerations
+      if (result !== null) {
+        // if it's not null, we have a result
+        return result;
+      }
+    }
+
+    if (this._parent) {
+      return await this._parent.take();
+    }
+
+    return null;
+  }
+}

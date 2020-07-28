@@ -88,7 +88,7 @@ export interface ActiveScript {
 
 const pipeOutput = { stdout: "piped", stderr: "piped" } as const;
 
-function startScript(type: "deno" | "bash", scriptPath: string, webhookBody: string, shell: string): Deno.Process<typeof pipeOutput & { cmd: string[] }> {
+function startScript(type: "deno" | "shell", scriptPath: string, webhookBody: string, shell: string): Deno.Process<typeof pipeOutput & { cmd: string[] }> {
   if (type === "deno") {
 
     // TODO: configurable permissions?

@@ -1,46 +1,24 @@
-import { Application } from "./deps.ts";
-import { execute } from "./scripts/execution.ts";
-import { resolveScript } from "./scripts/resolution.ts";
+import { parse, path } from "./deps.ts";
+import { runWebServer } from "./server.ts";
 
-let habitatId = 0;
+const parsedArgs = parse(Deno.args);
+const habitats = path.resolve(parsedArgs.habitats ?? parsedArgs.h ?? "/habitats/");
+const webhooks = path.resolve(parsedArgs.webhooks ?? parsedArgs.w ?? "/webhooks/");
+const shell = parsedArgs.shell ?? parsedArgs.s ?? "dash";
+const port = replaceNaN(parseInt(parsedArgs.port ?? parsedArgs.p), 80);
 
-try {
-  await Deno.stat("/habitats");
-}
-catch {
-  await Deno.mkdir("/habitats");
-}
+console.log('TriggerCD');
+console.log('===');
+console.log('Arguments:', parsedArgs);
+console.log('Configuration:');
+console.table({ habitats, webhooks, shell, port });
 
-const app = new Application();
-
-app.post("/webhook/:id", async (context) => {
-  const { id } = context.params;
-
-  // here, we enforce the id to only contain specific characters to not trip up
-  // any other part of the code. that way, there can be no fancy file name
-  // mangling with ".." or any other funny business.
-  if (!/[a-zA-Z0-9_\-]*/.test(id)) {
-    context.string("webhook id failed regex test /[a-zA-Z0-9_\-]*/", 400);
-    return;
+function replaceNaN(value: number, replaceValue: number): number {
+  if (isNaN(value)) {
+    return replaceValue;
   }
+  
+  return value;
+}
 
-  // resolve the script to run
-  const resolvedScript = await resolveScript(id);
-
-  if (resolvedScript === null) {
-    context.string(`failed to resolve script '${id}'.
-please see the Script Resolving Algorithm <doc link>
-or ensure that you've mounted a /webhooks/ volume <doc link>
-`, 500);
-    return;
-  }
-
-  const habitatPath = `/habitats/${habitatId++}`;
-
-  const activeScript = await execute(resolvedScript, { habitatPath, webhookBody: new TextDecoder().decode(await context.body<Uint8Array>()) })
-
-  context.blob(activeScript.output, "text/plain", 200);
-  await activeScript.execution;
-  return;
-})
-.start({ port: 80 });
+await runWebServer({ habitats, webhooks, shell, port });

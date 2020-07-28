@@ -53,6 +53,9 @@ export interface ScriptConfiguration {
 
   /** The body of the webhook. This will be passed along to the script as the first argument. */
   webhookBody: string;
+
+  /** The shell to use. Typically "dash" (similar to "bash") */
+  shell: string;
 }
 
 /**
@@ -68,7 +71,7 @@ export async function execute(script: ResolvedScript, config: ScriptConfiguratio
   await copy(scriptDirectory, config.habitatPath);
 
   const newScriptPath = path.resolve(config.habitatPath, path.basename(script.path));
-  const scriptProcess = startScript(script.type, newScriptPath, config.webhookBody);
+  const scriptProcess = startScript(script.type, newScriptPath, config.webhookBody, config.shell);
 
   const output = new MultiReader(scriptProcess.stdout, scriptProcess.stderr);
   const execution = scriptProcess.status().then(() => Deno.remove(config.habitatPath, { recursive: true }));
@@ -85,7 +88,7 @@ export interface ActiveScript {
 
 const pipeOutput = { stdout: "piped", stderr: "piped" } as const;
 
-function startScript(type: "deno" | "bash", scriptPath: string, webhookBody: string): Deno.Process<typeof pipeOutput & { cmd: string[] }> {
+function startScript(type: "deno" | "bash", scriptPath: string, webhookBody: string, shell: string): Deno.Process<typeof pipeOutput & { cmd: string[] }> {
   if (type === "deno") {
 
     // TODO: configurable permissions?
@@ -100,7 +103,7 @@ function startScript(type: "deno" | "bash", scriptPath: string, webhookBody: str
   }
   else {
     return Deno.run({
-      cmd: ["dash", scriptPath, webhookBody],
+      cmd: [shell, scriptPath, webhookBody],
       cwd: path.dirname(scriptPath),
       ...pipeOutput
     })

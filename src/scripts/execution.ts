@@ -100,7 +100,7 @@ function startScript(type: "deno" | "bash", scriptPath: string, webhookBody: str
   }
   else {
     return Deno.run({
-      cmd: ["bash", scriptPath, webhookBody],
+      cmd: ["dash", scriptPath, webhookBody],
       cwd: path.dirname(scriptPath),
       ...pipeOutput
     })

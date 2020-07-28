@@ -20,4 +20,4 @@ RUN deno cache --unstable deps.ts
 COPY src/ .
 RUN deno cache --unstable main.ts
 
-CMD ["run", "--allow-all", "--unstable", "main.ts"]
+ENTRYPOINT ["deno", "run", "--allow-all", "--unstable", "main.ts"]

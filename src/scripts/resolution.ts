@@ -76,10 +76,10 @@ async function statFile(path: string): Promise<FileInfo> {
 * Simplified model of FileInfo which contains only the fields needed for this
 * application.
 */
-export interface FileInfo {
- path: string;
- isDirectory: boolean;
- isFile: boolean;
+interface FileInfo {
+  path: string;
+  isDirectory: boolean;
+  isFile: boolean;
 }
 
 // this is an entire mini-library ffs

@@ -1,4 +1,4 @@
-import { parse, path } from "./deps.ts";
+import { log, parse, path } from "./deps.ts";
 import { runWebServer } from "./server.ts";
 
 const parsedArgs = parse(Deno.args);
@@ -28,9 +28,29 @@ async function ensureExists(directory: string) {
   }
 }
 
-ensureExists(webhooks);
-ensureExists(habitats);
-ensureExists(logs);
+await ensureExists(webhooks);
+await ensureExists(habitats);
+await ensureExists(logs);
+
+console.log('setting up logging');
+
+// setup logging to output logs into /logs/
+await log.setup({
+  handlers: {
+    console: new log.handlers.ConsoleHandler("DEBUG"),
+    file: new log.handlers.FileHandler("DEBUG", {
+      filename: path.resolve(path.join(logs, new Date().toISOString().replaceAll(":", "-")))
+    })
+  },
+  loggers: {
+    default: {
+      level: "DEBUG",
+      handlers: ["console", "file"]
+    }
+  }
+});
+
+console.log('starting web server');
 
 await runWebServer(config);
 

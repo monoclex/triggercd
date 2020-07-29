@@ -1,4 +1,4 @@
-import { Application } from "./deps.ts";
+import { Application, log } from "./deps.ts";
 import { execute } from "./scripts/execution.ts";
 import { Habitat } from "./scripts/habitats.ts";
 import { resolveScript } from "./scripts/resolution.ts";
@@ -15,6 +15,16 @@ export interface Configuration {
 }
 
 export async function runWebServer(config: Configuration): Promise<void> {
+  const logger = log.getLogger();
+
+  logger.debug('DEBUG LINE');
+  logger.info('INFO');
+  logger.warning('WARN');
+  logger.error('ERROR');
+  logger.critical('CRIT');
+  //@ts-ignore
+  logger.handlers.forEach(h => {try { h.flush(); } catch {}});
+
   const { webhooks, habitats, shell, port, debug } = config;
 
   const habitat = new Habitat(habitats);
@@ -24,11 +34,13 @@ export async function runWebServer(config: Configuration): Promise<void> {
   app
   .get("/webhooks/:id", async (context) => {
     if (!debug) {
+      logger.debug(`GET request for webhook`, context.params.id, `debug mode NOT enabled.`);
       context.string("enable debug mode (pass the --debug argument) to view information about this webhook", 500);
       return;
     }
 
     const { id } = context.params;
+    logger.debug(`GET request for webhook`, id, `debug mode ENABLED`);
 
     const resolvedScript = await resolveScript(id, webhooks);
 
@@ -57,6 +69,7 @@ webhooks directory: '${webhooks}'
   })
   .post("/webhooks/:id", async (context) => {
     const { id } = context.params;
+    logger.debug(`received POST for webhook`, id);
 
     // here, we enforce the id to only contain specific characters to not trip up
     // any other part of the code. that way, there can be no fancy file name
@@ -99,13 +112,15 @@ or ensure that you've mounted a /webhooks/ volume <doc link>
         shell,
       });
 
-      // stream the results to the caller
-      context.blob(activeScript.output, "text/plain", 200);
-
       try {
+        const scriptResults = await Deno.readAll(activeScript.output);
         await activeScript.execution;
-      } catch (error) {
-        console.error(error);
+        
+        context.blob(scriptResults, "text/plain", 200);
+        logger.info(`script completed`, { habitatPath, id, resolvedScript })
+      }
+      catch (error) {
+        logger.error(error);
       }
     }
     finally {
@@ -114,5 +129,25 @@ or ensure that you've mounted a /webhooks/ volume <doc link>
 
     return;
   })
+    .pre((next) => async (context) => {
+      try {
+        logger.debug(`got request: `, context.request.method, context.request.url)
+        const result = await next(context);
+        logger.debug(`successfully handled: `, context.request.method, context.request.url);
+        
+        return result;
+      }
+      catch (error) {
+        console.log(error);
+        context.string("serverside error - check logs", 500);
+        logger.error(`error on route`, context.request.method, context.request.url, error);
+      }
+      finally {
+        //@ts-ignore
+        logger.handlers.forEach(h => {try { h.flush(); } catch {}});
+      }
+    })
     .start({ port });
+  
+  console.log('web server running');
 }

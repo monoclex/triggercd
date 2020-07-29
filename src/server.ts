@@ -8,6 +8,7 @@ const textDecoder = new TextDecoder();
 export interface Configuration {
   webhooks: string;
   habitats: string;
+  logs: string;
   shell: string;
   port: number;
   debug: boolean;
@@ -18,17 +19,10 @@ export async function runWebServer(config: Configuration): Promise<void> {
 
   const habitat = new Habitat(habitats);
 
-  // ensure the habitats folder exists
-  try {
-    await Deno.stat(habitats);
-  } catch {
-    await Deno.mkdir(habitats);
-  }
-
   const app = new Application();
 
   app
-  .get("/webhook/:id", async (context) => {
+  .get("/webhooks/:id", async (context) => {
     if (!debug) {
       context.string("enable debug mode (pass the --debug argument) to view information about this webhook", 500);
       return;
@@ -61,7 +55,7 @@ webhooks directory: '${webhooks}'
       200,
     );
   })
-  .post("/webhook/:id", async (context) => {
+  .post("/webhooks/:id", async (context) => {
     const { id } = context.params;
 
     // here, we enforce the id to only contain specific characters to not trip up
@@ -86,23 +80,19 @@ or ensure that you've mounted a /webhooks/ volume <doc link>
       return;
     }
     
-    const { path: habitatPath, id: habitatId } = habitat.rent();
+    const { path: habitatPath, id: habitatId } = await habitat.rent();
 
-    // make SURE the directory is removed
-    // in theory, it shouldn't exist, but in practice it might
-    await Deno.remove(habitatPath, { recursive: true });
+    const secret = context.request.headers.get("X-Hub-Signature");
+
+    const payload = JSON.stringify({
+      headers: {
+        // TODO: other headers?
+        secret
+      },
+      body: textDecoder.decode(await context.body<Uint8Array>())
+    });
 
     try {
-      const secret = context.request.headers.get("X-Hub-Signature");
-
-      const payload = JSON.stringify({
-        headers: {
-          // TODO: other headers?
-          secret
-        },
-        body: textDecoder.decode(await context.body<Uint8Array>())
-      });
-
       const activeScript = await execute(resolvedScript, {
         habitatPath,
         webhookBody: payload,
@@ -111,7 +101,12 @@ or ensure that you've mounted a /webhooks/ volume <doc link>
 
       // stream the results to the caller
       context.blob(activeScript.output, "text/plain", 200);
-      await activeScript.execution;
+
+      try {
+        await activeScript.execution;
+      } catch (error) {
+        console.error(error);
+      }
     }
     finally {
       habitat.return(habitatId);

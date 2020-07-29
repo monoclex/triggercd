@@ -25,8 +25,9 @@ export function resolveScript(id: string, webhooksDir: string = "/webhooks/"): P
   // i think this is what they call "going overboard"
   // but anyways, up above is exactly the steps, which correlate to what you see in the last return statement. enjoy!
 
-  const runItAsADenoScript = (path: string): ResolvedScript => ({ path, type: "deno" });
-  const runItAsAShellScript = (path: string): ResolvedScript => ({ path, type: "shell" });
+  const fullyResolvedScriptPath = (scriptPath: string): string => path.resolve(path.join(webhooksDir, scriptPath));
+  const runItAsADenoScript = (scriptPath: string): ResolvedScript => ({ path: fullyResolvedScriptPath(scriptPath), type: "deno" });
+  const runItAsAShellScript = (scriptPath: string): ResolvedScript => ({ path: fullyResolvedScriptPath(scriptPath), type: "shell" });
 
   const ifItIsAFile = (_: unknown, fileInfo: FileInfo) => fileInfo.isFile;
   const ifItIsADirectory = (_: unknown, fileInfo: FileInfo) => fileInfo.isDirectory;

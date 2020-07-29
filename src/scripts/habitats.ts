@@ -23,7 +23,7 @@ export class Habitat {
 
   #rented: Record<number, true> = {};
 
-  rent(): HabitatRent {
+  async rent(): Promise<HabitatRent> {
     let id = 0;
 
     while (true) {
@@ -32,6 +32,16 @@ export class Habitat {
         continue;
       }
       
+      try {
+        await Deno.stat(path.join(this.habitatsPath, id.toString()))
+        
+        // if it didn't fail, that means the directory exists, can't use it
+        id++;
+        continue;
+      }
+      catch {
+      }
+
       break;
     }
 

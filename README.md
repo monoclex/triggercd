@@ -3,7 +3,7 @@
 
   [![img](https://img.shields.io/github/license/SirJosh3917/TriggerCD?style=flat-square)](https://github.com/SirJosh3917/TriggerCD/blob/master/LICENSE)
 
-  *Setup Continuous Deployment. Now. No abstract congfig, just shell scripts.*
+  *Setup Continuous Deployment. Now. No abstract config, just shell scripts.*
 
 </div>
 
@@ -38,13 +38,13 @@ To start using TriggerCD, you're going to need some way to host it. For the sake
 ![The Webhooks Location](./assets/triggercd-github-1.png)
 2. Enter in the URL of your webhook. Configure the webhook as you'd like here. Including a secret is best practice but not shown here. Click "Add Webhook" when you're done.
 ![Entering in Webhook URL](./assets/triggercd-github-2.png)
-3. In the `webhooks` directory, create a folder with the name of your webhook (in this case, `example` since the URL was `triggercd-example.com/wenhooks/example`), and make a `run.sh` script (or `run.ts` if you'd prefer to use `deno`)
+3. In the `webhooks` directory, create a folder with the name of your webhook (in this case, `example` since the URL was `triggercd-example.com/webhooks/example`), and make a `run.sh` script (or `run.ts` if you'd prefer to use `deno`)
 ```shell
 # command used to run triggercd, linux:
 $ triggercd
 
-# /webhooks/ directory layout
-/webhooks/example/run.sh
+# ./webhooks/ directory layout
+./webhooks/example/run.sh
 ```
 4. Do your logic in `run.sh`! Do note that the first argument passed to your script contains the webhook payload as JSON. [See the source for more info](https://github.com/SirJosh3917/TriggerCD/blob/master/src/server.ts#L100).
 
@@ -55,16 +55,16 @@ $ triggercd
 - [Habitats](#habitats)
 
 ### Webhook Script Store
-This is where you create a clean habitat for your scripts. This habitat gets copied to somewhere else and ran, and then completely deleted once it's done. The Webhooks Script Store is a folder, by default residing at `/webhooks/`, which can contain scripts or folders with scripts.
+This is where you create a clean habitat for your scripts. This habitat gets copied to somewhere else and ran, and then completely deleted once it's done. The Webhooks Script Store is a folder, by default residing at `./webhooks/`, which can contain scripts or folders with scripts.
 
 ```
-/webhooks/a.sh
-/webhooks/asset.png
-/webhooks/b/run.sh
-/webhooks/b/list.txt
+./webhooks/a.sh
+./webhooks/asset.png
+./webhooks/b/run.sh
+./webhooks/b/list.txt
 ```
 
-In this Webhook Script Store, there are _two_ webhooks. `a`, and `b`. Script `a` is located at `/webhooks/a.sh`, and script `b` is located at `/webhooks/b/run.sh`. When you create a script, you are guaranteed that everything within the parent directory of the script is accessible. This means that script `a` can utilize `asset.png`, and script `b` can utilize `list.txt`. As a side effect, this means that script `a` will have access to a copy of the `b` folder, with everything in it. This is why even though it's possible to have scripts at the top level, it's not recommended.
+In this Webhook Script Store, there are _two_ webhooks. `a`, and `b`. Script `a` is located at `./webhooks/a.sh`, and script `b` is located at `./webhooks/b/run.sh`. When you create a script, you are guaranteed that everything within the parent directory of the script is accessible. This means that script `a` can utilize `asset.png`, and script `b` can utilize `list.txt`. As a side effect, this means that script `a` will have access to a copy of the `b` folder, with everything in it. This is why even though it's possible to have scripts at the top level, it's not recommended.
 
 [Back to `Reference`](#reference)
 
@@ -72,33 +72,33 @@ In this Webhook Script Store, there are _two_ webhooks. `a`, and `b`. Script `a`
 The Script Resolving Algorithm is what determines how TriggerCD finds scripts correlating to webhooks.
 
 Script Resolving Algorithm:
-1. if `/webhooks/<webhookname>.ts` is a file, run it as a deno script
-2. if `/webhooks/<webhookname>.sh` is a file, run it as a bash script
-3. if `/webhooks/<webhookname> is` a directory:
-    1. if `/webhooks/<webhookname>/run.ts` exists, run it as a deno script
-    2. if `/webhooks/<webhookname>/<webhookname>.ts` exists, run it as a deno script
-    3. if `/webhooks/<webhookname>/run.sh` exists, run it as a bash script
-    4. if `/webhooks/<webhookname>/<webhookname>.sh` exists, run it as a bash script
+1. if `./webhooks/<webhookname>.ts` is a file, run it as a deno script
+2. if `./webhooks/<webhookname>.sh` is a file, run it as a bash script
+3. if `./webhooks/<webhookname> is` a directory:
+    1. if `./webhooks/<webhookname>/run.ts` exists, run it as a deno script
+    2. if `./webhooks/<webhookname>/<webhookname>.ts` exists, run it as a deno script
+    3. if `./webhooks/<webhookname>/run.sh` exists, run it as a bash script
+    4. if `./webhooks/<webhookname>/<webhookname>.sh` exists, run it as a bash script
 4. report an error
 
 [Back to `Reference`](#reference)
 
 ### Habitats
-Script habitats are clones of the habitats found in `/webhooks/`. Typically they reside in `/habitats/`. Each running habitat is given an id, and can be found at `/habitatis/<id>`. For example, here is a Webhooks Script Store with script `a` in habitat `0` and script `b` in habitat `1`.
+Script habitats are clones of the habitats found in `./webhooks/`. Typically they reside in `./habitats/`. Each running habitat is given an id, and can be found at `./habitatis/<id>`. For example, here is a Webhooks Script Store with script `a` in habitat `0` and script `b` in habitat `1`.
 
 ```
-/webhooks/a.sh
-/webhooks/asset.png
-/webhooks/b/run.sh
-/webhooks/b/list.txt
+./webhooks/a.sh
+./webhooks/asset.png
+./webhooks/b/run.sh
+./webhooks/b/list.txt
 
-/habitats/0/a.sh
-/habitats/0/asset.png
-/habitats/0/b/run.sh
-/habitats/0/b/list.txt
+./habitats/0/a.sh
+./habitats/0/asset.png
+./habitats/0/b/run.sh
+./habitats/0/b/list.txt
 
-/habitats/1/run.sh
-/habitats/1/list.txt
+./habitats/1/run.sh
+./habitats/1/list.txt
 ```
 
 [Back to `Reference`](#reference)
@@ -108,7 +108,7 @@ Script habitats are clones of the habitats found in `/webhooks/`. Typically they
 | Argument     | Alias | Default     | Description |
 | :----------- | :---- | :---------- | :---------- |
 | `--port`     |  `p`  | `80`        | The port to run the web server on.
-| `--root`     |  `r`  | `/`         | The root directory to instantiate the webhooks, habitats, and logs folder in.
+| `--root`     |  `r`  | `./`         | The root directory to instantiate the webhooks, habitats, and logs folder in.
 | `--webhooks` |  `w`  | `webhooks/` | The location of the Webhook Script Store.
 | `--habitats` |  `h`  | `habitats/` | The location where the habitats will be created.
 | `--logs`     |  `l`  | `logs/`     | The location where logs will reside.

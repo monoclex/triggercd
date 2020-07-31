@@ -148,6 +148,4 @@ or ensure that you've mounted a /webhooks/ volume <doc link>
       }
     })
     .start({ port });
-  
-  console.log('web server running');
 }

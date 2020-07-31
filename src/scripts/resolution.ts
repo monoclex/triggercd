@@ -6,11 +6,11 @@ import { path } from "./deps.ts";
  * Script Resolving Algorithm:
  * 1. if /webhooks/`webhookname`.ts is a file, run it as a deno script
  * 2. if /webhooks/`webhookname`.sh is a file, run it as a bash script
- * 3. if /webhooks/`webhookname` is a directory,
- *   1. if /webhooks/`webhookname`/run.ts exists, run it as a deno script
- *   2. if /webhooks/`webhookname`/`webhookname`.ts exists, run it as a deno script
- *   3. if /webhooks/`webhookname`/run.sh exists, run it as a bash script
- *   4. if /webhooks/`webhookname`/`webhookname`.sh exists, run it as a bash script
+ * 3. if /webhooks/`webhookname` is a directory:
+ *     1. if /webhooks/`webhookname`/run.ts exists, run it as a deno script
+ *     2. if /webhooks/`webhookname`/`webhookname`.ts exists, run it as a deno script
+ *     3. if /webhooks/`webhookname`/run.sh exists, run it as a bash script
+ *     4. if /webhooks/`webhookname`/`webhookname`.sh exists, run it as a bash script
  * 4. report an error
  * 
  * * when running as a script, the first argument is a JSON representation of the webhook request.

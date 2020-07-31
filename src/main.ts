@@ -2,6 +2,57 @@ import { log, parse, path } from "./deps.ts";
 import { runWebServer } from "./server.ts";
 
 const parsedArgs = parse(Deno.args);
+
+if (parsedArgs.help) {
+  // TODO: this is just copied from online readme lol
+  console.table([
+    {
+      argument: "port",
+      alias: "p",
+      default: 80,
+      description: "The port to run the web server on."
+    },
+    {
+      argument: "root",
+      alias: "r",
+      default: "/",
+      description: "The root directory to instantiate the webhooks, habitats, and logs folder in."
+    },
+    {
+      argument: "webhooks",
+      alias: "w",
+      default: "webhooks/",
+      description: "The location of the Webhook Script Store."
+    },
+    {
+      argument: "habitats",
+      alias: "h",
+      default: "habitats/",
+      description: "The location where the habitats will be created."
+    },
+    {
+      argument: "logs",
+      alias: "l",
+      default: "logs/",
+      description: "The location where logs will reside."
+    },
+    {
+      argument: "shell",
+      alias: "s",
+      default: "dash",
+      description: "The type of shell to use (for executing bash scripts)"
+    },
+    {
+      argument: "debug",
+      alias: "d",
+      default: false,
+      description: "If enabled, allows you to see some debug information about a webhook endpoint."
+    }
+  ]);
+
+  Deno.exit(0);
+}
+
 const root = path.resolve(parsedArgs.root ?? parsedArgs.r ?? "/");
 const webhooks = path.resolve(parsedArgs.webhooks ?? parsedArgs.w ?? path.join(root, "webhooks/"));
 const habitats = path.resolve(parsedArgs.habitats ?? parsedArgs.h ?? path.join(root, "habitats/"));

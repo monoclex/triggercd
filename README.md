@@ -107,7 +107,7 @@ Script habitats are clones of the habitats found in `/webhooks/`. Typically they
 
 | Argument     | Alias | Default     | Description |
 | :----------- | :---- | :---------- | :---------- |
-| `--port`     |  `p`  | `80`        | The port to run the web server on. Defaults to `80`.
+| `--port`     |  `p`  | `80`        | The port to run the web server on.
 | `--root`     |  `r`  | `/`         | The root directory to instantiate the webhooks, habitats, and logs folder in.
 | `--webhooks` |  `w`  | `webhooks/` | The location of the Webhook Script Store.
 | `--habitats` |  `h`  | `habitats/` | The location where the habitats will be created.

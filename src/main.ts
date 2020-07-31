@@ -15,7 +15,7 @@ if (parsedArgs.help) {
     {
       argument: "root",
       alias: "r",
-      default: "/",
+      default: "./",
       description: "The root directory to instantiate the webhooks, habitats, and logs folder in."
     },
     {
@@ -53,7 +53,7 @@ if (parsedArgs.help) {
   Deno.exit(0);
 }
 
-const root = path.resolve(parsedArgs.root ?? parsedArgs.r ?? "/");
+const root = path.resolve(parsedArgs.root ?? parsedArgs.r ?? "./");
 const webhooks = path.resolve(parsedArgs.webhooks ?? parsedArgs.w ?? path.join(root, "webhooks/"));
 const habitats = path.resolve(parsedArgs.habitats ?? parsedArgs.h ?? path.join(root, "habitats/"));
 const logs = path.resolve(parsedArgs.logs ?? parsedArgs.l ?? path.join(root, "logs/"));
@@ -83,9 +83,9 @@ await ensureExists(webhooks);
 await ensureExists(habitats);
 await ensureExists(logs);
 
-console.log('setting up logging');
+console.log('Setting up logging...');
 
-// setup logging to output logs into /logs/
+// setup logging to output logs into ./logs/
 await log.setup({
   handlers: {
     console: new log.handlers.ConsoleHandler("DEBUG"),
@@ -101,9 +101,11 @@ await log.setup({
   }
 });
 
-console.log('starting web server');
+console.log('Starting web server...');
 
 await runWebServer(config);
+
+console.log('Web server running!');
 
 function replaceNaN(value: number, replaceValue: number): number {
   return isNaN(value) ? replaceValue : value;

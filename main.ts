@@ -1,5 +1,6 @@
 /**
- * @description Empty file to point to the ./src/main.ts directory. Makes the URL for installing cleaner.
+ * @description Empty file to point to the ./daemon/src/main.ts directory. Makes the URL for installing cleaner.
  */
 
-import "./src/main.ts";
+import "./cli/src/main.ts";
+

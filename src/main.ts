@@ -1,4 +1,5 @@
 import { log, parse, path } from "./deps.ts";
+import { runConfig } from "./scripts/config-runner.ts";
 import { runWebServer } from "./server.ts";
 
 const parsedArgs = parse(Deno.args);
@@ -88,7 +89,9 @@ console.log('Setting up logging...');
 // setup logging to output logs into ./logs/
 await log.setup({
   handlers: {
-    console: new log.handlers.ConsoleHandler("DEBUG"),
+    console: new log.handlers.ConsoleHandler("DEBUG", {
+      formatter: (record) => `[${record.levelName}] ${record.msg} ${record.args.join(" ")}`
+    }),
     file: new log.handlers.FileHandler("DEBUG", {
       filename: path.resolve(path.join(logs, new Date().toISOString().replaceAll(":", "-")))
     })

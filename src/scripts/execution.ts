@@ -88,24 +88,30 @@ export interface ActiveScript {
 
 const pipeOutput = { stdout: "piped", stderr: "piped" } as const;
 
-function startScript(type: "deno" | "shell", scriptPath: string, webhookBody: string, shell: string): Deno.Process<typeof pipeOutput & { cmd: string[] }> {
-  if (type === "deno") {
+function startScript(type: "deno" | "shell" | "config", scriptPath: string, webhookBody: string, shell: string): Deno.Process<typeof pipeOutput & { cmd: string[] }> {
+  switch (type) {
+    case "config": {
+      return Deno.run({ cmd: [], cwd: "", ...pipeOutput });
+    }
 
-    // TODO: configurable permissions?
-    // we should be in a trusted environment already (and if not, in a docker container at least) so any possible damage is minimal.
-    // currently, the benefits of this being configurable are outweighed by the additional complexity (requiring additoinal configuration to
-    // be passed in).
-    return Deno.run({
-      cmd: ["deno", "run", "--allow-all", "--unstable", scriptPath, webhookBody],
-      cwd: path.dirname(scriptPath),
-      ...pipeOutput
-    })
-  }
-  else {
-    return Deno.run({
-      cmd: [shell, scriptPath, webhookBody],
-      cwd: path.dirname(scriptPath),
-      ...pipeOutput
-    })
+    case "deno": {
+      // TODO: configurable permissions?
+      // we should be in a trusted environment already (and if not, in a docker container at least) so any possible damage is minimal.
+      // currently, the benefits of this being configurable are outweighed by the additional complexity (requiring additoinal configuration to
+      // be passed in).
+      return Deno.run({
+        cmd: ["deno", "run", "--allow-all", "--unstable", scriptPath, webhookBody],
+        cwd: path.dirname(scriptPath),
+        ...pipeOutput
+      })
+    }
+
+    case "shell": {
+      return Deno.run({
+        cmd: [shell, scriptPath, webhookBody],
+        cwd: path.dirname(scriptPath),
+        ...pipeOutput
+      })
+    }
   }
 }

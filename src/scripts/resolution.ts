@@ -4,14 +4,17 @@ import { path } from "./deps.ts";
  * Resolves a script using the Script Resolving Algorithm.
  * 
  * Script Resolving Algorithm:
- * 1. if /webhooks/`webhookname`.ts is a file, run it as a deno script
- * 2. if /webhooks/`webhookname`.sh is a file, run it as a bash script
- * 3. if /webhooks/`webhookname` is a directory:
- *     1. if /webhooks/`webhookname`/run.ts exists, run it as a deno script
- *     2. if /webhooks/`webhookname`/`webhookname`.ts exists, run it as a deno script
- *     3. if /webhooks/`webhookname`/run.sh exists, run it as a bash script
- *     4. if /webhooks/`webhookname`/`webhookname`.sh exists, run it as a bash script
- * 4. report an error
+ * 1. if /webhooks/`webhookname`.json is a file, run it as a configuration script
+ * 2. if /webhooks/`webhookname`.ts is a file, run it as a deno script
+ * 3. if /webhooks/`webhookname`.sh is a file, run it as a bash script
+ * 4. if /webhooks/`webhookname` is a directory:
+ *     1. if /webhooks/`webhookname`/run.json is a file, run it as a configuration script
+ *     2. if /webhooks/`webhookname`/`webhookname`.json is a file, run it as a configuration script
+ *     3. if /webhooks/`webhookname`/run.ts exists, run it as a deno script
+ *     4. if /webhooks/`webhookname`/`webhookname`.ts exists, run it as a deno script
+ *     5. if /webhooks/`webhookname`/run.sh exists, run it as a bash script
+ *     6. if /webhooks/`webhookname`/`webhookname`.sh exists, run it as a bash script
+ * 5. report an error
  * 
  * * when running as a script, the first argument is a JSON representation of the webhook request.
  * 
@@ -28,6 +31,7 @@ export function resolveScript(id: string, webhooksDir: string = "/webhooks/"): P
   const fullyResolvedScriptPath = (scriptPath: string): string => path.resolve(path.join(webhooksDir, scriptPath));
   const runItAsADenoScript = (scriptPath: string): ResolvedScript => ({ path: fullyResolvedScriptPath(scriptPath), type: "deno" });
   const runItAsAShellScript = (scriptPath: string): ResolvedScript => ({ path: fullyResolvedScriptPath(scriptPath), type: "shell" });
+  const runItAsConfiguration = (scriptPath: string): ResolvedScript => ({ path: fullyResolvedScriptPath(scriptPath), type: "config" });
 
   const ifItIsAFile = (_: unknown, fileInfo: FileInfo) => fileInfo.isFile;
   const ifItIsADirectory = (_: unknown, fileInfo: FileInfo) => fileInfo.isDirectory;
@@ -35,13 +39,16 @@ export function resolveScript(id: string, webhooksDir: string = "/webhooks/"): P
   const getFileInfo = (name: string) => statFile(path.join(webhooksDir, name));
 
   // i generally dislike manually spacing all arguments to be the same but *eh*
-  return consider(`${id}.ts`,       getFileInfo, ifItIsAFile,      runItAsADenoScript)
-    .or(          `${id}.sh`,       getFileInfo, ifItIsAFile,      runItAsAShellScript)
-    .or(          `${id}`,          getFileInfo, ifItIsADirectory, () => (
-      consider(   `${id}/run.ts`,   getFileInfo, ifItIsAFile,      runItAsADenoScript)
-      .or(        `${id}/${id}.ts`, getFileInfo, ifItIsAFile,      runItAsADenoScript)
-      .or(        `${id}/run.sh`,   getFileInfo, ifItIsAFile,      runItAsAShellScript)
-      .or(        `${id}/${id}.sh`, getFileInfo, ifItIsAFile,      runItAsAShellScript)
+  return consider(`${id}.json`,       getFileInfo, ifItIsAFile,      runItAsConfiguration)
+    .or(          `${id}.ts`,         getFileInfo, ifItIsAFile,      runItAsADenoScript)
+    .or(          `${id}.sh`,         getFileInfo, ifItIsAFile,      runItAsAShellScript)
+    .or(          `${id}`,            getFileInfo, ifItIsADirectory, () => (
+      consider(   `${id}/run.json`,   getFileInfo, ifItIsAFile,    runItAsConfiguration)
+      .or(        `${id}/${id}.json`, getFileInfo, ifItIsAFile,    runItAsConfiguration)
+      .or(        `${id}/run.ts`,     getFileInfo, ifItIsAFile,      runItAsADenoScript)
+      .or(        `${id}/${id}.ts`,   getFileInfo, ifItIsAFile,      runItAsADenoScript)
+      .or(        `${id}/run.sh`,     getFileInfo, ifItIsAFile,      runItAsAShellScript)
+      .or(        `${id}/${id}.sh`,   getFileInfo, ifItIsAFile,      runItAsAShellScript)
       .take()
     ))
     .take();
@@ -49,7 +56,7 @@ export function resolveScript(id: string, webhooksDir: string = "/webhooks/"): P
 
 export interface ResolvedScript {
   path: string;
-  type: "deno" | "shell";
+  type: "deno" | "shell" | "config";
 }
 
 /**

@@ -11,9 +11,6 @@ RUN apk add --no-cache docker-cli git dash \
 
 WORKDIR /app
 
-# copy tsconfig early as it will most likely change less frequently than the source code
-COPY tsconfig.app.json .
-
 # cache external dependencies to make successive builds faster
 COPY src/deps.ts .
 RUN deno cache --unstable deps.ts
@@ -23,4 +20,4 @@ RUN deno cache --unstable deps.ts
 COPY src/ .
 RUN deno cache --unstable main.ts
 
-ENTRYPOINT ["deno", "run", "--allow-all", "--unstable", "--config", "./tsconfig.app.json", "main.ts"]
+ENTRYPOINT ["deno", "run", "--allow-all", "--unstable", "main.ts"]

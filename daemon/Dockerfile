@@ -16,11 +16,12 @@ COPY tsconfig.app.json .
 
 # cache external dependencies to make successive builds faster
 COPY src/deps.ts .
-RUN deno cache --unstable deps.ts
+RUN deno cache --unstable --config ./tsconfig.app.json deps.ts
 # `--unstable` needed for deno fs copy, /shrug
+# `--config <>` is needed so that it doesn't try to do a tsconfig check every run
 
 # cache the program itself so that it won't need to be compiled on every startup of the container
 COPY src/ .
-RUN deno cache --unstable main.ts
+RUN deno cache --unstable --config ./tsconfig.app.json main.ts
 
 ENTRYPOINT ["deno", "run", "--allow-all", "--unstable", "--config", "./tsconfig.app.json", "main.ts"]

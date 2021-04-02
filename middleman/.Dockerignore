@@ -1,4 +1,0 @@
-# for TriggerCD to be built, all it needs is the source code of the application in the src folder
-# this ignores everything but the src directory
-**
-!src/
